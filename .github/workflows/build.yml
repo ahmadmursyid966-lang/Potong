@@ -1,0 +1,34 @@
+name: Build APK
+on:
+  workflow_dispatch:
+    inputs:
+      with_qwen:
+        description: "Ikutkan Qwen offline"
+        type: boolean
+        default: false
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ekstrak proyek
+        run: unzip -q Potong-Android-dan-Linux.zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.5"
+      - name: llama.cpp
+        if: ${{ inputs.with_qwen }}
+        run: |
+          git clone --depth 1 https://github.com/ggml-org/llama.cpp Potong/app/src/main/cpp/llama.cpp
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "cmake;3.22.1" "ndk;26.1.10909125" > /dev/null
+      - name: Build
+        working-directory: Potong
+        run: gradle :app:assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Potong-debug-apk
+          path: Potong/app/build/outputs/apk/debug/app-debug.apk
